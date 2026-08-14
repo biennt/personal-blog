@@ -1,0 +1,120 @@
+<% const pageTitle = post ? 'Edit Post' : 'New Post'; %>
+<%- include('header') %>
+
+<div class="editor-page">
+  <h1><%= post ? 'Edit Post' : 'New Post' %></h1>
+
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-error"><%= error %></div>
+  <% } %>
+
+  <form method="POST" action="<%= post && post.id ? '/edit/' + post.id : '/new' %>" class="editor-form">
+    <div class="form-group">
+      <label for="title">Title</label>
+      <input
+        type="text"
+        id="title"
+        name="title"
+        placeholder="Post title..."
+        value="<%= post ? post.title : '' %>"
+        required
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="content">
+        Content
+        <span class="label-hint">Markdown supported</span>
+      </label>
+      <div class="editor-toolbar">
+        <button type="button" onclick="insertMd('**', '**')" title="Bold"><b>B</b></button>
+        <button type="button" onclick="insertMd('*', '*')" title="Italic"><i>I</i></button>
+        <button type="button" onclick="insertMd('~~', '~~')" title="Strikethrough"><s>S</s></button>
+        <button type="button" onclick="insertMd('\n## ', '\n')" title="Heading">H</button>
+        <button type="button" onclick="insertMd('\n- ', '\n')" title="List">&#8226;</button>
+        <button type="button" onclick="insertMd('\n1. ', '\n')" title="Ordered List">1.</button>
+        <button type="button" onclick="insertMd('[', '](url)')" title="Link">&#128279;</button>
+        <button type="button" onclick="insertMd('![alt](', ')')" title="Image">&#128247;</button>
+        <button type="button" onclick="insertMd('`', '`')" title="Inline Code">&lt;/&gt;</button>
+        <button type="button" onclick="insertMd('\n```\n', '\n```\n')" title="Code Block">{ }</button>
+        <button type="button" onclick="insertMd('\n> ', '\n')" title="Blockquote">&ldquo;</button>
+        <button type="button" onclick="insertMd('\n---\n', '')" title="Horizontal Rule">&mdash;</button>
+        <span class="toolbar-sep"></span>
+        <button type="button" id="previewToggle" onclick="togglePreview()">Preview</button>
+      </div>
+      <div class="editor-split">
+        <textarea
+          id="content"
+          name="content"
+          rows="20"
+          placeholder="Write your post in Markdown..."
+          required
+        ><%= post ? post.content : '' %></textarea>
+        <div id="preview" class="preview-pane markdown-body" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary"><%= post && post.id ? 'Update Post' : 'Publish Post' %></button>
+      <a href="<%= post && post.id ? '/post/' + post.slug : '/' %>" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  // ---- Markdown toolbar helpers ----
+  function insertMd(before, after) {
+    const ta = document.getElementById('content');
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = ta.value.substring(start, end);
+    const replacement = before + selected + after;
+    ta.setRangeText(replacement, start, end, 'end');
+    ta.focus();
+    updatePreview();
+  }
+
+  // ---- Live preview ----
+  let previewVisible = false;
+
+  function togglePreview() {
+    previewVisible = !previewVisible;
+    const pane = document.getElementById('preview');
+    const btn = document.getElementById('previewToggle');
+    const ta = document.getElementById('content');
+    if (previewVisible) {
+      pane.style.display = 'block';
+      ta.classList.add('half');
+      btn.classList.add('active');
+      updatePreview();
+    } else {
+      pane.style.display = 'none';
+      ta.classList.remove('half');
+      btn.classList.remove('active');
+    }
+  }
+
+  let debounceTimer;
+  function updatePreview() {
+    if (!previewVisible) return;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async () => {
+      const content = document.getElementById('content').value;
+      try {
+        const res = await fetch('/api/preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content }),
+        });
+        const data = await res.json();
+        document.getElementById('preview').innerHTML = data.html;
+      } catch (e) {
+        console.error('Preview failed', e);
+      }
+    }, 300);
+  }
+
+  document.getElementById('content').addEventListener('input', updatePreview);
+</script>
+
+<%- include('footer') %>

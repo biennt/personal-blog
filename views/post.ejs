@@ -1,0 +1,30 @@
+<% const pageTitle = post.title; %>
+<%- include('header') %>
+
+<article class="post-full">
+  <div class="post-meta">
+    <time datetime="<%= post.created_at %>">
+      <%= new Date(post.created_at + 'Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %>
+    </time>
+    <% if (post.updated_at !== post.created_at) { %>
+      <span class="edited">(edited <%= new Date(post.updated_at + 'Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %>)</span>
+    <% } %>
+  </div>
+
+  <h1><%= post.title %></h1>
+
+  <div class="post-content markdown-body">
+    <%- marked(post.content) %>
+  </div>
+
+  <div class="post-actions">
+    <a href="/edit/<%= post.id %>" class="btn">Edit</a>
+    <form action="/delete/<%= post.id %>" method="POST" class="inline-form"
+          onsubmit="return confirm('Delete this post?');">
+      <button type="submit" class="btn btn-danger">Delete</button>
+    </form>
+    <a href="/" class="btn btn-secondary">&larr; All Posts</a>
+  </div>
+</article>
+
+<%- include('footer') %>
